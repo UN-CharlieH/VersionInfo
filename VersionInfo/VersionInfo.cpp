@@ -43,10 +43,17 @@ std::wstring VersionInfo::GetValue(wchar_t sep)
    return ostr.str();
 }
 
+#include <windows.h>
 void VersionInfo::SetFileVersion(const std::wstring filePath)
 {
+   DWORD sz = GetFileVersionInfoSize(filePath.c_str(), NULL);
    // read file version
    std::wstring fileVer;
+   if (GetFileVersionInfoW(filePath.c_str(), 0, dwSize, pBuffer))
+   {
+   }
+   else
+      dwError = GetLastError();
 
    // add
    SetValue(fileVer);
