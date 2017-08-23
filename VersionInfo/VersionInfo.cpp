@@ -1,3 +1,5 @@
+
+#include <windows.h>
 #include "VersionInfo.h"
 #include <sstream>
 
@@ -46,17 +48,31 @@ std::wstring VersionInfo::GetValue(wchar_t sep)
 #include <windows.h>
 void VersionInfo::SetFileVersion(const std::wstring filePath)
 {
-   DWORD sz = GetFileVersionInfoSize(filePath.c_str(), NULL);
    // read file version
    std::wstring fileVer;
-   if (GetFileVersionInfoW(filePath.c_str(), 0, dwSize, pBuffer))
+   DWORD dwBufLen = GetFileVersionInfoSizeW(filePath.c_str(), NULL);
+   wchar_t* pBuffer = new wchar_t[dwBufLen/sizeof(wchar_t) + 1];
+   if (pBuffer)
    {
+      pBuffer[dwBufLen / sizeof(wchar_t)] = 0;
+      if (GetFileVersionInfoW(filePath.c_str(), 0, dwBufLen, pBuffer))
+      {
+         wchar_t* pVerBuf;
+         unsigned int uLen;
+         if (VerQueryValueW(pBuffer, L"\\FileVersion", (LPVOID*)&pVerBuf, &uLen))
+         {
+            fileVer = pVerBuf;
+         }
+      }
+      else
+         dwRet = GetLastError(); // Failure conditions
+
+      delete[] pBuffer;
    }
-   else
-      dwError = GetLastError();
 
    // add
-   SetValue(fileVer);
+   if (fileVer.length() > 0)
+      SetValue(fileVer);
 }
 
 inline int VersionInfo::compare(const VersionInfo & lhs, const VersionInfo & rhs)
