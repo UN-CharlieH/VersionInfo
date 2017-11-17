@@ -2,14 +2,8 @@
 #include <windows.h>
 #include "VersionInfo.h"
 #include <sstream>
-
-//inline bool VersionInfo::operator>(const VersionInfo& rhs)
-//{
-//   if (compare(*this, rhs) > 0)
-//      return true;
-//
-//   return false;
-//}
+#include <iomanip>
+#include <iostream>
 
 int VersionInfo::Compare(int maj, int min, int rev, int bld)
 {
@@ -45,9 +39,42 @@ std::wstring VersionInfo::GetValue(wchar_t sep)
    return ostr.str();
 }
 
-#include <windows.h>
-void VersionInfo::SetFileVersion(const std::wstring filePath)
+std::wstring TestForStrTable(wchar_t* pBuffer)
 {
+   std::wstring fileVer;
+
+   wchar_t* pVerBuf;
+   unsigned int uLen;
+   unsigned int cbTranslate = 0;
+   struct LANGANDCODEPAGE {
+      WORD wLanguage;
+      WORD wCodePage;
+   } *lpTranslate;
+
+   // Read the list of languages and code pages.
+   if (VerQueryValue(pBuffer, TEXT("\\VarFileInfo\\Translation"), (LPVOID*)&lpTranslate, &cbTranslate))
+   {
+      // Read the file description for each language and code page.
+      for (int i = 0; i < (cbTranslate / sizeof(struct LANGANDCODEPAGE)); i++)
+      {
+         std::wostringstream ostr;
+         ostr << L"\\StringFileInfo\\" << std::setw(4) << std::setfill(L'0') << std::hex << lpTranslate->wLanguage <<
+            std::setw(4) << std::setfill(L'0') << std::hex << lpTranslate->wCodePage << L"\\FileVersion";
+
+         // Retrieve file description for language and code page "i". 
+         if (VerQueryValue(pBuffer, ostr.str().c_str(), (LPVOID*)&pVerBuf, &uLen)) {
+            if (pVerBuf)
+               fileVer = pVerBuf;
+         }
+      }
+   }
+
+   return fileVer;
+}
+
+int VersionInfo::SetFileVersion(const std::wstring& filePath)
+{
+   int dwRet = 0;
    // read file version
    std::wstring fileVer;
    DWORD dwBufLen = GetFileVersionInfoSizeW(filePath.c_str(), NULL);
@@ -57,12 +84,7 @@ void VersionInfo::SetFileVersion(const std::wstring filePath)
       pBuffer[dwBufLen / sizeof(wchar_t)] = 0;
       if (GetFileVersionInfoW(filePath.c_str(), 0, dwBufLen, pBuffer))
       {
-         wchar_t* pVerBuf;
-         unsigned int uLen;
-         if (VerQueryValueW(pBuffer, L"\\FileVersion", (LPVOID*)&pVerBuf, &uLen))
-         {
-            fileVer = pVerBuf;
-         }
+         fileVer = TestForStrTable(pBuffer);
       }
       else
          dwRet = GetLastError(); // Failure conditions
@@ -73,9 +95,11 @@ void VersionInfo::SetFileVersion(const std::wstring filePath)
    // add
    if (fileVer.length() > 0)
       SetValue(fileVer);
+
+   return dwRet;
 }
 
-inline int VersionInfo::compare(const VersionInfo & lhs, const VersionInfo & rhs)
+int VersionInfo::compare(const VersionInfo & lhs, const VersionInfo & rhs)
 {
    if (lhs.major > rhs.major)
       return 1;

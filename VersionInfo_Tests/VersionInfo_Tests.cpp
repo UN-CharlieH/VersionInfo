@@ -10,19 +10,24 @@ namespace VersionInfo_Tests
 {		
 	TEST_CLASS(VersionInfo_Test1)
 	{
+       std::map<std::wstring, std::vector<int>> GetTestList() {
+          std::map<std::wstring, std::vector<int>> testlist;
+
+          testlist[L"1.2.3.4"] = std::vector<int>({ 1,2,3,4 });
+          testlist[L"1,2,3,4"] = std::vector<int>({ 1,2,3,4 });
+          testlist[L"1234"] = std::vector<int>({ 1234,0,0,0 });
+          return testlist;
+       }
+
 	public:
 		
-		TEST_METHOD(ParseVersion)
+		TEST_METHOD(ConstructorParse)
 		{
-           std::map<std::wstring, std::vector<int>> testlist;
+           std::map<std::wstring, std::vector<int>> testlist = GetTestList();
 
-           testlist[L"1.2.3.4"] = std::vector<int>({ 1,2,3,4 });
-           testlist[L"1,2,3,4"] = std::vector<int>({ 1,2,3,4 });
-           testlist[L"1234"] = std::vector<int>({ 1234,0,0,0 });
-           VersionInfo versTest;
            for (std::map<std::wstring, std::vector<int>>::iterator idx = testlist.begin(); idx != testlist.end(); idx++)
            {
-              versTest.SetValue(idx->first);
+              VersionInfo versTest(idx->first);
               if (versTest.major != idx->second[0] ||
                  versTest.minor != idx->second[1] ||
                  versTest.build != idx->second[2] ||
@@ -44,20 +49,43 @@ namespace VersionInfo_Tests
            VersionInfo v4(1, 2, 4, 5);
            VersionInfo v5(1, 2, 3, 5);
 
-           if (v2 > v1)
-           {
+           if (v1 > v2)
               Assert::Fail(L"Comparison failed");
-           }
         }
 
         TEST_METHOD(SetValue)
         {
-           Assert:: Fail(L"Comparison failed");
+           std::map<std::wstring, std::vector<int>> testlist = GetTestList();
+
+           for (std::map<std::wstring, std::vector<int>>::iterator idx = testlist.begin(); idx != testlist.end(); idx++)
+           {
+              VersionInfo versTest;
+              versTest.SetValue(idx->first);
+              if (versTest.major != idx->second[0] ||
+                 versTest.minor != idx->second[1] ||
+                 versTest.build != idx->second[2] ||
+                 versTest.revision != idx->second[3])
+              {
+                 std::wostringstream ostr;
+                 ostr << L"Input: " << idx->first << L" Output: " << versTest.GetValue();
+                 Assert::Fail(ostr.str().c_str());
+              }
+           }
         }
 
         TEST_METHOD(SetFileVersion)
         {
-           Assert::Fail(L"Comparison failed");
+           VersionInfo vers;
+           vers.SetFileVersion(L"winhttp.dll");
+
+           Assert::IsTrue(vers.major >= 1);
+           Assert::IsTrue(vers.minor >= 0);
+           Assert::IsTrue(vers.build >= 0);
+           Assert::IsTrue(vers.revision >= 0);
+           //OutputMessage(vers.GetValue());
+
+           vers.SetFileVersion(L"wininet.dll");
+
         }
 
     };
