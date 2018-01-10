@@ -33,6 +33,7 @@ public:
 
    // Read the passed file version
    int SetFileVersion(const std::wstring& filePath);
+   int SetProductVersion(const std::wstring& filePath);
 
    int major;
    int minor;
@@ -41,4 +42,10 @@ public:
 
 private:
    int compare(const VersionInfo& lhs, const VersionInfo& rhs);
+
+   // Pass the resource buffer from GetVersionInfo.
+   // type of 0->file version, 1->product version.
+   // returns 4 place version with dot separator. Zeros used if any field is undefined.
+   static std::wstring GetFixedVerResValue(wchar_t* pBuffer, int type);
+   std::wstring GetResItem(const std::wstring& filePath, int type);
 };

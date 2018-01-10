@@ -16,10 +16,19 @@ namespace VersionInfo_Tests
           testlist[L"1.2.3.4"] = std::vector<int>({ 1,2,3,4 });
           testlist[L"1,2,3,4"] = std::vector<int>({ 1,2,3,4 });
           testlist[L"1234"] = std::vector<int>({ 1234,0,0,0 });
+          testlist[L"1.2.3.4_Debug"] = std::vector<int>({ 1,2,3,4 });
+          testlist[L"1.2.34_Debug"] = std::vector<int>({ 1,2,34,0 });
+          testlist[L"1.2.3_Debug.4"] = std::vector<int>({ 1,2,3,0 });
           return testlist;
        }
 
-	public:
+       std::wstring MakeMessage(const std::wstring& input, const std::wstring& output) {
+          std::wostringstream ostr;
+          ostr << L"Input: " << input << L" Output: " << output;
+          return ostr.str();
+       }
+
+    public:
 		
 		TEST_METHOD(ConstructorParse)
 		{
@@ -33,9 +42,7 @@ namespace VersionInfo_Tests
                  versTest.build != idx->second[2] ||
                  versTest.revision != idx->second[3])
               {
-                 std::wostringstream ostr;
-                 ostr << L"Input: " << idx->first << L" Output: " << versTest.GetValue();
-                 Assert::Fail(ostr.str().c_str());
+                 Assert::Fail(MakeMessage(idx->first, versTest.GetValue()).c_str());
               }
            }
 		}
@@ -49,8 +56,17 @@ namespace VersionInfo_Tests
            VersionInfo v4(1, 2, 4, 5);
            VersionInfo v5(1, 2, 3, 5);
 
+           VersionInfo v7, v8;
+           v7.SetValue(L"1.2.1928.0");
+           v8.SetValue(L"1.3.2015_v2");
+           if (v7 >= v8)
+              Assert::Fail(MakeMessage(v7.GetValue(), v8.GetValue()).c_str());
+
            if (v1 > v2)
-              Assert::Fail(L"Comparison failed");
+              Assert::Fail(MakeMessage(v1.GetValue(), v2.GetValue()).c_str());
+
+           if (v2 != v2_dup)
+              Assert::Fail(MakeMessage(v2.GetValue(), v2_dup.GetValue()).c_str());
         }
 
         TEST_METHOD(SetValue)
@@ -78,15 +94,36 @@ namespace VersionInfo_Tests
            VersionInfo vers;
            vers.SetFileVersion(L"winhttp.dll");
 
-           Assert::IsTrue(vers.major >= 1);
+           // tracks with OS version
+           Assert::IsTrue(vers.major >= 6);
            Assert::IsTrue(vers.minor >= 0);
-           Assert::IsTrue(vers.build >= 0);
+           Assert::IsTrue(vers.build > 0);
            Assert::IsTrue(vers.revision >= 0);
-           //OutputMessage(vers.GetValue());
 
            vers.SetFileVersion(L"wininet.dll");
+           Assert::IsTrue(vers.major >= 6);
+           Assert::IsTrue(vers.minor >= 0);
+           Assert::IsTrue(vers.build > 0);
+           Assert::IsTrue(vers.revision >= 0);
 
         }
 
+        TEST_METHOD(SetProductVersion)
+        {
+           VersionInfo vers;
+           vers.SetProductVersion(L"winhttp.dll");
+
+           Assert::IsTrue(vers.major >= 6);
+           Assert::IsTrue(vers.minor >= 0);
+           Assert::IsTrue(vers.build >= 0);
+           Assert::IsTrue(vers.revision >= 0);
+
+           vers.SetProductVersion(L"wininet.dll");
+           Assert::IsTrue(vers.major >= 6);
+           Assert::IsTrue(vers.minor >= 0);
+           Assert::IsTrue(vers.build > 0);
+           Assert::IsTrue(vers.revision >= 0);
+
+        }
     };
 }
